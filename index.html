@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>見えない困難を推理せよ - Evidence Edition</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #667085;
+      --line: #d8dee9;
+      --main: #2563eb;
+      --main-soft: #dbeafe;
+      --good: #15803d;
+      --warn: #b45309;
+      --bad: #b91c1c;
+      --shadow: 0 10px 28px rgba(31, 41, 55, 0.12);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 42%, #f8fafc 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .app {
+      width: min(960px, 100%);
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      padding: 18px 0 10px;
+    }
+
+    h1 {
+      font-size: clamp(1.45rem, 4vw, 2.2rem);
+      line-height: 1.25;
+      margin: 0 0 8px;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+      line-height: 1.6;
+    }
+
+    .progress-area {
+      margin: 20px 0 16px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+
+    .progress-track {
+      height: 10px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 20%;
+      background: linear-gradient(90deg, #2563eb, #16a34a);
+      transition: width 300ms ease;
+    }
+
+    main {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(18px, 4vw, 28px);
+      min-height: 520px;
+    }
+
+    .fade {
+      animation: fadeIn 280ms ease both;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .step-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #1d4ed8;
+      background: var(--main-soft);
+      border: 1px solid #bfdbfe;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 0.84rem;
+      margin-bottom: 14px;
+    }
+
+    .behavior {
+      border-left: 5px solid var(--main);
+      background: #f8fbff;
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+    }
+
+    .behavior-label {
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .behavior-text {
+      font-size: clamp(1.15rem, 3vw, 1.5rem);
+      font-weight: 850;
+      line-height: 1.45;
+    }
+
+    .instruction {
+      color: var(--muted);
+      line-height: 1.7;
+      margin: 0 0 16px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 16px 0 22px;
+    }
+
+    .card-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      width: 100%;
+      min-height: 74px;
+      padding: 14px;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      cursor: pointer;
+      transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+      text-align: left;
+      user-select: none;
+    }
+
+    .card-option:hover {
+      border-color: #93c5fd;
+      transform: translateY(-1px);
+    }
+
+    .card-option.selected {
+      border-color: var(--main);
+      background: var(--main-soft);
+    }
+
+    .card-option input {
+      width: 20px;
+      height: 20px;
+      margin: 2px 0 0;
+      accent-color: var(--main);
+      flex: 0 0 auto;
+    }
+
+    .option-text {
+      font-weight: 750;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    button {
+      border: 0;
+      border-radius: var(--radius);
+      background: var(--main);
+      color: #ffffff;
+      font-weight: 850;
+      padding: 12px 18px;
+      min-height: 46px;
+      cursor: pointer;
+      transition: opacity 160ms ease, transform 160ms ease, background 160ms ease;
+      font-size: 1rem;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      background: #1d4ed8;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .secondary {
+      background: #334155;
+    }
+
+    .secondary:hover {
+      background: #1f2937;
+    }
+
+    .feedback {
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin: 18px 0 14px;
+      line-height: 1.7;
+      font-weight: 750;
+      border: 1px solid;
+    }
+
+    .feedback.good {
+      color: var(--good);
+      background: #ecfdf5;
+      border-color: #bbf7d0;
+    }
+
+    .feedback.warn {
+      color: var(--warn);
+      background: #fffbeb;
+      border-color: #fde68a;
+    }
+
+    .feedback.bad {
+      color: var(--bad);
+      background: #fef2f2;
+      border-color: #fecaca;
+    }
+
+    .small-note {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.7;
+      margin-top: 10px;
+    }
+
+    .result-panel {
+      text-align: center;
+      padding: 18px 0;
+    }
+
+    .score {
+      font-size: clamp(2.4rem, 10vw, 4.2rem);
+      font-weight: 900;
+      color: var(--main);
+      line-height: 1;
+      margin: 14px 0;
+    }
+
+    .diagnosis {
+      display: inline-block;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-weight: 850;
+      margin: 8px 0 16px;
+    }
+
+    .result-copy {
+      color: var(--muted);
+      line-height: 1.8;
+      max-width: 660px;
+      margin: 0 auto 20px;
+    }
+
+    @media (max-width: 680px) {
+      .app {
+        padding: 14px;
+      }
+
+      main {
+        padding: 16px;
+        min-height: auto;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .card-option {
+        min-height: 64px;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .progress-label {
+        font-size: 0.86rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>見えない困難を推理せよ - Evidence Edition</h1>
+      <p class="subtitle">
+        表面的な行動だけで決めつけず、関係する手がかりを選び、背景の可能性を考える2段階推理ゲームです。
+      </p>
+    </header>
+
+    <section class="progress-area" aria-label="進捗">
+      <div class="progress-label">
+        <span id="progressText">1/5</span>
+        <span id="scoreText">スコア 0/20</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </section>
+
+    <main id="game"></main>
+  </div>
+
+  <script>
+    // Fisher-Yatesアルゴリズムで配列をランダムに並び替える
+    function shuffleArray(array) {
+      const copied = array.slice();
+      for (let i = copied.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copied[i], copied[j]] = [copied[j], copied[i]];
+      }
+      return copied;
+    }
+
+    const questions = [
+      {
+        behavior: "板書が遅いが理解できている",
+        evidences: [
+          { text: "発言では理解できる", correct: true },
+          { text: "漢字を書き間違える", correct: true },
+          { text: "書くのに時間がかかる", correct: true },
+          { text: "体育が得意", correct: false },
+          { text: "友達が多い", correct: false },
+          { text: "よく笑う", correct: false }
+        ],
+        backgrounds: [
+          { label: "A", text: "やる気", result: "off" },
+          { label: "B", text: "書字処理負荷", result: "match" },
+          { label: "C", text: "理解不足", result: "near" },
+          { label: "D", text: "集中", result: "near" }
+        ]
+      },
+      {
+        behavior: "音読が遅いが聞けば理解",
+        evidences: [
+          { text: "行を飛ばす", correct: true },
+          { text: "読むのが遅い", correct: true },
+          { text: "聞けば理解", correct: true },
+          { text: "絵が得意", correct: false },
+          { text: "背が高い", correct: false },
+          { text: "運動好き", correct: false }
+        ],
+        backgrounds: [
+          { label: "A", text: "読字困難", result: "match" },
+          { label: "B", text: "努力不足", result: "off" },
+          { label: "C", text: "理解不足", result: "near" },
+          { label: "D", text: "記憶", result: "near" }
+        ]
+      },
+      {
+        behavior: "複数指示で止まる",
+        evidences: [
+          { text: "一斉指示で止まる", correct: true },
+          { text: "個別ならできる", correct: true },
+          { text: "途中で忘れる", correct: true },
+          { text: "静か", correct: false },
+          { text: "真面目", correct: false },
+          { text: "図工が好き", correct: false }
+        ],
+        backgrounds: [
+          { label: "A", text: "やる気", result: "off" },
+          { label: "B", text: "情報処理負荷", result: "match" },
+          { label: "C", text: "反抗", result: "off" },
+          { label: "D", text: "理解", result: "near" }
+        ]
+      },
+      {
+        behavior: "作文になると書けないが口頭では話せる",
+        evidences: [
+          { text: "話すと説明できる", correct: true },
+          { text: "書くと止まる", correct: true },
+          { text: "文の構成が難しい", correct: true },
+          { text: "発表が好き", correct: false },
+          { text: "明るい", correct: false },
+          { text: "背が低い", correct: false }
+        ],
+        backgrounds: [
+          { label: "A", text: "書字表出困難", result: "match" },
+          { label: "B", text: "努力不足", result: "off" },
+          { label: "C", text: "理解不足", result: "near" },
+          { label: "D", text: "記憶", result: "near" }
+        ]
+      },
+      {
+        behavior: "計算はできるが文章題で止まる",
+        evidences: [
+          { text: "計算は正確", correct: true },
+          { text: "文章題で止まる", correct: true },
+          { text: "何を求めるか分からない", correct: true },
+          { text: "算数が好き", correct: false },
+          { text: "宿題は出す", correct: false },
+          { text: "席が前", correct: false }
+        ],
+        backgrounds: [
+          { label: "A", text: "計算苦手", result: "near" },
+          { label: "B", text: "推論困難", result: "match" },
+          { label: "C", text: "やる気", result: "off" },
+          { label: "D", text: "集中", result: "near" }
+        ]
+      }
+    ];
+
+    const state = {
+      index: 0,
+      score: 0,
+      step: 1,
+      currentEvidence: [],
+      currentBackgrounds: [],
+      selectedEvidenceIndexes: [],
+      selectedBackgroundIndex: null
+    };
+
+    const game = document.getElementById("game");
+    const progressText = document.getElementById("progressText");
+    const scoreText = document.getElementById("scoreText");
+    const progressFill = document.getElementById("progressFill");
+
+    function updateProgress() {
+      const visibleIndex = Math.min(state.index + 1, questions.length);
+      progressText.textContent = `${visibleIndex}/${questions.length}`;
+      scoreText.textContent = `スコア ${state.score}/20`;
+      progressFill.style.width = `${(visibleIndex / questions.length) * 100}%`;
+    }
+
+    function startQuestion() {
+      const question = questions[state.index];
+      state.step = 1;
+      state.currentEvidence = shuffleArray(question.evidences);
+      state.currentBackgrounds = shuffleArray(question.backgrounds);
+      state.selectedEvidenceIndexes = [];
+      state.selectedBackgroundIndex = null;
+      updateProgress();
+      renderStep1();
+    }
+
+    function renderBehavior(question) {
+      return `
+        <div class="behavior">
+          <div class="behavior-label">観察された行動</div>
+          <div class="behavior-text">${question.behavior}</div>
+        </div>
+      `;
+    }
+
+    function renderStep1() {
+      const question = questions[state.index];
+      game.className = "fade";
+      game.innerHTML = `
+        <div class="step-tag">STEP1 証拠選択</div>
+        ${renderBehavior(question)}
+        <p class="instruction">背景を考えるために関係がありそうな手がかりを選んでください。複数選択できます。</p>
+        <div class="cards" id="evidenceCards">
+          ${state.currentEvidence.map((item, index) => `
+            <label class="card-option" data-index="${index}">
+              <input type="checkbox" />
+              <span class="option-text">${item.text}</span>
+            </label>
+          `).join("")}
+        </div>
+        <div class="actions">
+          <button id="submitEvidence">証拠を決定</button>
+        </div>
+      `;
+
+      document.querySelectorAll(".card-option").forEach(card => {
+        card.addEventListener("click", () => {
+          const input = card.querySelector("input");
+          setTimeout(() => {
+            card.classList.toggle("selected", input.checked);
+          }, 0);
+        });
+      });
+
+      document.getElementById("submitEvidence").addEventListener("click", submitEvidence);
+    }
+
+    function submitEvidence() {
+      const checked = [...document.querySelectorAll("#evidenceCards input")]
+        .map((input, index) => input.checked ? index : null)
+        .filter(index => index !== null);
+
+      if (checked.length === 0) {
+        showInlineFeedback("bad", "まずは、関係がありそうな手がかりを1つ以上選んでみましょう。");
+        return;
+      }
+
+      state.selectedEvidenceIndexes = checked;
+      const correctCount = checked.filter(index => state.currentEvidence[index].correct).length;
+
+      // 満点20点に合わせるため、STEP1は各問最大2点まで加点する
+      state.score += Math.min(correctCount, 2);
+      updateProgress();
+
+      let feedbackClass = "bad";
+      let feedbackText = "注目してみよう！行動に直接関係する情報がヒントです";
+
+      if (correctCount >= 3) {
+        feedbackClass = "good";
+        feedbackText = "いいですね！適切な手がかりに注目できています";
+      } else if (correctCount >= 1) {
+        feedbackClass = "warn";
+        feedbackText = "おしい！関係のある情報を見極めてみよう";
+      }
+
+      game.innerHTML += `
+        <div class="feedback ${feedbackClass}">${feedbackText}</div>
+        <p class="small-note">選んだ手がかりをもとに、次は背景として考えられる可能性を推理します。</p>
+        <div class="actions">
+          <button id="goStep2" class="secondary">STEP2へ進む</button>
+        </div>
+      `;
+
+      document.getElementById("submitEvidence").disabled = true;
+      document.querySelectorAll("#evidenceCards input").forEach(input => input.disabled = true);
+      document.getElementById("goStep2").addEventListener("click", renderStep2);
+    }
+
+    function showInlineFeedback(type, text) {
+      const existing = document.getElementById("inlineFeedback");
+      if (existing) existing.remove();
+
+      const node = document.createElement("div");
+      node.id = "inlineFeedback";
+      node.className = `feedback ${type}`;
+      node.textContent = text;
+      document.querySelector(".actions").before(node);
+    }
+
+    function renderStep2() {
+      const question = questions[state.index];
+      state.step = 2;
+      state.selectedBackgroundIndex = null;
+      game.className = "fade";
+      game.innerHTML = `
+        <div class="step-tag">STEP2 背景推理</div>
+        ${renderBehavior(question)}
+        <p class="instruction">選んだ証拠をもとに、背景として考えられる可能性を1つ選んでください。</p>
+        <div class="cards" id="backgroundCards">
+          ${state.currentBackgrounds.map((item, index) => `
+            <label class="card-option" data-index="${index}">
+              <input type="radio" name="background" />
+              <span class="option-text">${item.label}：${item.text}</span>
+            </label>
+          `).join("")}
+        </div>
+        <div class="actions">
+          <button id="submitBackground">推理を決定</button>
+        </div>
+      `;
+
+      document.querySelectorAll(".card-option").forEach(card => {
+        card.addEventListener("click", () => {
+          document.querySelectorAll(".card-option").forEach(c => c.classList.remove("selected"));
+          card.classList.add("selected");
+        });
+      });
+
+      document.getElementById("submitBackground").addEventListener("click", submitBackground);
+    }
+
+    function submitBackground() {
+      const selected = [...document.querySelectorAll("#backgroundCards input")]
+        .findIndex(input => input.checked);
+
+      if (selected === -1) {
+        showInlineFeedback("bad", "背景として考えられる可能性を1つ選んでみましょう。");
+        return;
+      }
+
+      const result = state.currentBackgrounds[selected].result;
+      let feedbackClass = "bad";
+      let feedbackText = "別の可能性も考えてみよう";
+      let point = 0;
+
+      if (result === "match") {
+        feedbackClass = "good";
+        feedbackText = "いいですね！";
+        point = 2;
+      } else if (result === "near") {
+        feedbackClass = "warn";
+        feedbackText = "おしい！";
+        point = 1;
+      }
+
+      state.score += point;
+      updateProgress();
+
+      const nextLabel = state.index === questions.length - 1 ? "結果を見る" : "次の問題へ";
+
+      game.innerHTML += `
+        <div class="feedback ${feedbackClass}">${feedbackText}</div>
+        <p class="small-note">これは断定ではなく、支援を考えるための仮説です。ほかの情報と合わせて考えることが大切です。</p>
+        <div class="actions">
+          <button id="nextQuestion" class="secondary">${nextLabel}</button>
+        </div>
+      `;
+
+      document.getElementById("submitBackground").disabled = true;
+      document.querySelectorAll("#backgroundCards input").forEach(input => input.disabled = true);
+      document.getElementById("nextQuestion").addEventListener("click", nextQuestion);
+    }
+
+    function nextQuestion() {
+      state.index++;
+      if (state.index >= questions.length) {
+        renderResult();
+      } else {
+        startQuestion();
+      }
+    }
+
+    function renderResult() {
+      progressText.textContent = "5/5";
+      scoreText.textContent = `スコア ${state.score}/20`;
+      progressFill.style.width = "100%";
+
+      let diagnosis = "直感から深めるスタートタイプ";
+      if (state.score >= 16) {
+        diagnosis = "背景を見る名探偵タイプ";
+      } else if (state.score >= 10) {
+        diagnosis = "手がかりをつなぐ推理タイプ";
+      }
+
+      game.className = "fade";
+      game.innerHTML = `
+        <section class="result-panel">
+          <div class="step-tag">RESULT</div>
+          <h2>推理完了</h2>
+          <div class="score">${state.score}<span style="font-size: 1.2rem; color: #667085;"> / 20点</span></div>
+          <div class="diagnosis">${diagnosis}</div>
+          <p class="result-copy">
+            この結果は能力を決めつけるものではありません。表面的な行動の奥にある可能性を、証拠から慎重に考えるための練習です。
+            支援は「正解を当てる」ことではなく、関係する情報を集めながら考え続けることから始まります。
+          </p>
+          <div class="actions" style="justify-content: center;">
+            <button id="restart">もう一度プレイ</button>
+          </div>
+        </section>
+      `;
+
+      document.getElementById("restart").addEventListener("click", () => {
+        state.index = 0;
+        state.score = 0;
+        startQuestion();
+      });
+    }
+
+    startQuestion();
+  </script>
+</body>
+</html>
